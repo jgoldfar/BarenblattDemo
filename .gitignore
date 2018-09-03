@@ -1,0 +1,3 @@
+*.pyc
+*.el
+/num_results
