@@ -6,7 +6,7 @@ from ..log import plog
 class method(object):
 	def __init__(self, grid=None):
 		super(method,self).__init__()
-		self.l=plog(self.__class__)
+		self.l=plog(str(self.__class__))
 		self.l.info(self.l.newinst_info('method',self.__class__))
 		if grid is not None:
 			self.set_grid(grid)

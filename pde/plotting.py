@@ -10,7 +10,7 @@ class plotobj(object):
 	def __init__(self,bk=None,fname=None):
 		self.fname=fname
 		super(plotobj,self).__init__()
-		self.l=plog(self.__class__)
+		self.l=plog(string(self.__class__))
 		
 		
 	def save(self, fname=None,dpi=None):

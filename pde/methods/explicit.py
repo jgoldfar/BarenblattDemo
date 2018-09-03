@@ -1,5 +1,5 @@
 """Explicit methods to calculate PDE solutions on grids"""
-from base import method, differencer
+from .base import method, differencer
 
 class diffusion(method):
     def __init__(self,grid=None,b=0,beta=1,alpha=1,ktxu=None):
@@ -54,6 +54,10 @@ class diffusion(method):
                 kyi = self.ktxu(t,xi[oax],yi)
                 kyim = self.ktxu(t,xim[oax],yim)
                 kyip = self.ktxu(t,xip[oax],yip)
+                if yi<=0: # Outside support of solution
+                    powyi = 0
+                else: 
+                    powyi = pow(yi,self.beta-1)
                 
                 self.g.u[ind]=(
                     dt*(
@@ -61,7 +65,7 @@ class diffusion(method):
                     yim*kyim +
                     (yip - yi)*kyip
                     ) +
-                    2*dx1*(dx1*yi + self.b*self.beta*dt*(yim-yi)*pow(yi,self.beta-1))
+                    2*dx1*(dx1*yi + self.b*self.beta*dt*(yim-yi)*powyi)
                 )/(2*pow(dx1,2) + dt*(kyi + kyim))
 
 class ftcs_1d(method):

@@ -1,5 +1,5 @@
 """Implements implicit PDE solution methods."""
-from base import method
+from .base import method
 from numpy import eye, diagflat, linalg, amax, fabs,concatenate, dot,nan_to_num
 #TODO: Add logging to these methods
 

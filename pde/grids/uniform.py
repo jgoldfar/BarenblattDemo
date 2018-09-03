@@ -2,8 +2,8 @@
 Collection of "uniform" grids in n-dimensions, with distance in each
 direction parameterized by the vector h
 """
-from base import grid, active_manip
 import numpy
+from .base import grid, active_manip
 
 class uniformgrid(grid,active_manip):
     """Base class for uniform grids"""
@@ -18,7 +18,7 @@ class uniformgrid(grid,active_manip):
         Also, sets self.t to be the type of the solution grid for future reference.
         """
         #TODO: This implementation can be made faster/leaner by not storing all of the x values
-        self.nx=map(int,dims)
+        self.nx=list(map(int,dims))
         super(uniformgrid, self).__init__(numpy.zeros(dims, type), numpy.zeros((1,2),'int16'))
 
         if x is None:
@@ -43,18 +43,18 @@ class uniformgrid(grid,active_manip):
         
     def x_to_ind(self, x):
         """
-        input:  an x value.  Note that if the x value is outside the solution domain,
+        input:  an x value. Note that if the x value is outside the solution domain,
                 this function will throw a ValueError
         output: the closest corresponding index in the solution grid
         """
         if len(x) > self.u.ndim:
             raise ValueError('x has {} dimensions, but grid has {}.'.format(len(x),self.u.ndim))
         
-        for i in range(0,len(x)):
-            if x[i]< self.rx[i][0] or x[i] > self.rx[i][1]:
+        for (xi, rxi) in zip(x, self.rx):
+            if xi < rxi[0] or xi > rxi[1]:
                 raise ValueError(
-                                'x[{0}] exceeds the range of available x values in \
-                                dimension {0}: [{1},{2}]'.format(i,self.rx[i][0],self.rx[i][1]))
+                                '{0} exceeds the range of available x values \
+                                : [{1},{2}]'.format(xi, rxi[0], rxi[1]))
         return [numpy.argmin(numpy.absolute(x[i]-self.x[i])) for i in range(0,self.u.ndim)]
 
     def set_bc(self,fn):
@@ -74,17 +74,17 @@ class uniformgrid(grid,active_manip):
 
 class twoddir(uniformgrid):
     """Test case for a two dimensional grid"""
-    def __init__(self, h=(0.1,0.1),rx=((0,1),(0,1)), n=None):
+    def __init__(self, h=(0.1,0.1),rx=[(0,1),(0,1)], n=None):
         #TODO: More clearly give option to choose number of grid points
         if len(h) != len(rx):
             raise ValueError(
                         'Grid spacing vector h has length {} while grid range matrix xr suggests {}-dimensions\
                         '.format(len(h),len(rx))
                             )
-        
-        self.rx,self.h=rx,h
-        super(twoddir, self).__init__( [int((rx[i][1]-rx[i][0])/h[i]) for i in range(0,len(h))])
-        self.x=[numpy.linspace(rx[i][0], rx[i][1], self.nx[i], True) for i in range(0,self.u.ndim)]
+        self.rx = rx
+        self.h = h
+        super(twoddir, self).__init__( [int((rxi[1]-rxi[0])/hi) for (rxi, hi) in zip(rx, h)])
+        self.x=[numpy.linspace(rxi[0], rxi[1], nxi, True) for (rxi, nxi) in zip(rx, self.nx)]
         self._set_timelike_axis(0)
 
     def _set_bc_left(self,fn):

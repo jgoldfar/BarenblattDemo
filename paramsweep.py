@@ -20,7 +20,7 @@ def do_sweep(basedir, sigma, nbeta, ngamma):
 		for beta in linspace(0,1,nbeta):
 			for b in [0.01]:
 				for gamma in linspace(0.9,1.8,ngamma):
-					grid = twoddir((0.004, 0.1), ((0, 0.01), (-2, 2)))
+					grid = twoddir((0.004, 0.1), [(0, 0.01), (-2, 2)])
 					grid.set_active_int_plus_top()
 					grid.set_bc(hom.dd_xpowalpha(grid, gamma, cutoff=True))
 					soln = diffusion(grid,b,beta,sigma)

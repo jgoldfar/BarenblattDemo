@@ -5,12 +5,7 @@ import types
 
 class plog(logging.getLoggerClass()):
     def __init__(self, mod=None):
-        if type(mod) is types.ClassType or type(mod) is types.TypeType:
-            super(plog,self).__init__('pde.'+self.get_class_text(mod))
-        elif type(mod) is types.StringType:
-            super(plog,self).__init__('pde.'+mod)
-        else:
-            raise TypeError(self.type_err('mod','class, type, or string',type(mod)))
+        super(plog,self).__init__('pde.'+mod)
         
         self.setLevel(logging.INFO)
         t=logging.StreamHandler()
@@ -44,26 +39,4 @@ class plog(logging.getLoggerClass()):
     def newinst_info(desc, classin):
         """Standardizes the instantiation message."""
         return 'Created new {} object of type {}'.format(desc,classin)
-    
-    @classmethod
-    def get_class_text(cls,clin,stripbase=True):
-        """
-        Get qualified class name information from given type.
-        input:
-                clin: Type or Class.
-                stripbase: Boolean.  If true, remove the first entry
-                            in the list making up the qualified name.
-        """
-        
-        if type(clin) in set([types.TypeType, types.ClassType]): 
-            s=str(clin)
-            s=s.split("'")
-            s=s[1]
-            if stripbase:
-                if '.' in s:
-                    s=s.split('.')
-                    return '.'.join(s[1:])
-                        
-            return s
-        raise TypeError(cls.type_err('clin','class, type, or string',type(clin)))
     
