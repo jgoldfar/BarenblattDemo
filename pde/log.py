@@ -47,11 +47,12 @@ class plog(logging.getLoggerClass()):
     
     @classmethod
     def get_class_text(cls,clin,stripbase=True):
-        """Get qualified class name information from given type.
-            input:
-                    clin: Type or Class.
-                    stripbase: Boolean.  If true, remove the first entry
-                                in the list making up the qualified name.
+        """
+        Get qualified class name information from given type.
+        input:
+                clin: Type or Class.
+                stripbase: Boolean.  If true, remove the first entry
+                            in the list making up the qualified name.
         """
         
         if type(clin) in set([types.TypeType, types.ClassType]): 
