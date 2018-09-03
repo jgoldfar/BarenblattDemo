@@ -1,5 +1,7 @@
 # README #
 
+[![Build Status](https://travis-ci.org/jgoldfar/BarenblattDemo.svg?branch=master)](https://travis-ci.org/jgoldfar/BarenblattDemo)
+
 This repository contains a very basic implementation of a finite difference scheme for nonlinear diffusion-type equations based on methods given in A. A. Samarskii's "The Theory of Difference Schemes".
 Results from this scheme match the qualitative picture (modulo noise due to approximation error) which we are deriving through theoretical work, and have been presented as poster presentations:
 
