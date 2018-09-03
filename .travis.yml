@@ -13,4 +13,5 @@ install:
 
 script:
   - pytest -v
-  - python paramsweep.py num_results 2 --nbeta 2 --ngamma 2
+  - python paramsweep.py --nbeta 2 --ngamma 2 num_results/sweep 2
+  - python validate.py --t0 0.5 --h 0.1 --tau 0.005 num_results/validate 2 1

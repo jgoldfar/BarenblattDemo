@@ -5,7 +5,6 @@ from pde.grids.uniform import twoddir
 from pde.methods.explicit import diffusion
 from pde.bc import hom
 from pde.interface import int_track as tr
-from time import time
 from numpy import linspace, linalg
 
 from os import path
@@ -15,7 +14,7 @@ def do_sweep(basedir, sigma, nbeta, ngamma):
 	dirWithRun = path.join(basedir, 'run'+str(sigma))
 	if not path.isdir(dirWithRun):
 		os.makedirs(dirWithRun)
-	with open(path.join(dirWithRun, 'results' + str(time()) + '.dat'), 'w') as f:
+	with open(path.join(dirWithRun, 'results.dat'), 'w') as f:
 		f.write("sigma,b,beta,gamma,diff_10e-2,diff_10e-3\n")
 		for beta in linspace(0,1,nbeta):
 			for b in [0.01]:
