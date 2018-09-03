@@ -13,3 +13,4 @@ install:
 
 script:
   - pytest -v
+  - python paramsweep.py num_results 2 --nbeta 2 --ngamma 2
