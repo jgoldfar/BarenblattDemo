@@ -8,43 +8,10 @@ class diffusion(method):
         u_t=(k(u,x,t) u_x)_x + f(ux,u,x,t)
         Of course, convergence of the numerical scheme is not guaranteed!
     """
-    def __init__(self,grid=None,kfn=None,ffn=None):#,b=None,beta=None,sigma=None):
+    def __init__(self,grid=None,kfn=None,ffn=None):
         super(diffusion,self).__init__(grid)
-#        ns=False
-#        if kfn is None:
-#            if sigma is None:
-#                sigma=1.0
-#                ns=True
-#            else:
-#                sigma=float(sigma)
-#            print "Creating appropriate diffusion coefficient function."
-#            def kfn(u=0,x=0,t=0):
-#                return sigma*pow(u,sigma-1)
-#            print """
-#            def kfn(u,x,t):
-#                return {}*pow(u,{}-1)
-#            """.format(sigma,sigma)
-#        if ffn is None:
-#            if beta is None:
-#                beta=1.0
-#                ns=True
-#            else:
-#                beta=float(beta)
-#            if b is None:
-#                b=0.0
-#                ns=True
-#            else:
-#                b=float(b)
-#            print "Creating appropriate convection coefficient function."
-#            def ffn(ux=0,u=0,x=0,t=0):
-#                return b*beta*pow(u,beta-1.0)*ux
-#            print """
-#            def ffn(ux,u,x,t):
-#                return {}*{}*pow(u,{}-1.0)*ux
-#            """.format(b,beta,beta)
         self.kf=kfn
         self.ff=ffn
-        #self.g.l.info("defaults={}, b={}, beta={}, sigma={}.".format(ns,b,beta,sigma))
 
     def __call__(self,scheme=1,**kwargs):
         self.calculate(scheme=scheme,**kwargs)
@@ -80,19 +47,21 @@ class diffusion(method):
 
     @staticmethod
     def _solve_sys_cat(A,b,lb,rb,allow_singular=1,logger=None):
-        """Solves the system Ax=b for x, resorting to least-squares in the bad case.  Also
-            pads the solution with the left and right endpoint values lb and rb."""
+        """
+        Solves the system Ax=b for x, resorting to least-squares in the bad case. Also
+        pads the solution with the left and right endpoint values lb and rb.
+        """
         try:
             t=concatenate([[lb],linalg.solve(A,b),[rb]])
             #print linalg.solve(A,b)
         except linalg.LinAlgError:
-            print "Caught Singular system"
+            print "Caught singular system"
             if allow_singular is 'log':
                 try:
                     print "Singular system; returning least-squares solution."
                     t=concatenate([[lb],dot(linalg.pinv(A),b),[rb]])
                 except linalg.LinAlgError:
-                    print "Error finding least-squares solution.  Giving zero."
+                    print "Error finding least-squares solution. Giving zero."
                     print A
                     print b
                     return b*0
@@ -118,7 +87,7 @@ class diffusion(method):
         
         tax=grid._get_timelike_axis()
         if tax is 0:
-            oax=1
+            oax = 1
         else:
             oax = 0
         t=grid.x[tax]
@@ -135,8 +104,8 @@ class diffusion(method):
         #print diff
         # allow_singular is a flag that tells how you would like to handle a singular LHS matrix.
         #    since this seems to be a common issue, the default behavior is to write a message to the
-        #    log and use the moore-penrose pseudoinverse to find a least-squares solution to the
-        #    same problem.  To set this behavior, choose 'log' or do nothing; to re-raise the error,
+        #    log and use the Moore-Penrose pseudoinverse to find a least-squares solution to the
+        #    same problem. To set this behavior, choose 'log' or do nothing; to re-raise the error,
         #    set it to 'raise'.
         allow_singular=kwargs.get('allow_singular','log')
         #print allow_singular
@@ -291,14 +260,15 @@ class diffusion_old(method):
             raise NotImplementedError('Grids with more than one spatial dimension not supported.')
         
     def _calculate_python_1d_rev3(self,steperr=10**-7,itermax=3):
-        """Implements scheme b in Samarskii's text with some slight modifications to give a 
-            convection term rather than a reaction term.  Implements the convection as a 
-            backward difference, and the convection terms appear on the RHS, not in the 
-            coefficient matrix.
-            
-            This scheme is not rearranged or simplified by a computer algebra system. 
-            """ 
-            #TODO: This scheme can be optimized in the same way as rev2
+        """
+        Implements scheme b in Samarskii's text with some slight modifications to give a 
+        convection term rather than a reaction term. Implements the convection as a 
+        backward difference, and the convection terms appear on the RHS, not in the 
+        coefficient matrix.
+        
+        This scheme is not rearranged or simplified by a computer algebra system. 
+        """ 
+        #TODO: This scheme can be optimized in the same way as rev2
         def aiv(l,v):
             #return 0.5*(self.ktxu(v[i-1])+self.kxtu(v[i])))
             return 0.5*(pow(v[l-1],self.sigma)+pow(v[l],self.sigma))
@@ -362,14 +332,15 @@ class diffusion_old(method):
             g[i]=pn
 
     def _calculate_python_1d_rev2(self,steperr=10**-5,itermax=20):
-        """Implements scheme b in Samarskii's text with some slight modifications to give a 
-            convection term rather than a reaction term.  Implements the convection as a 
-            backward difference, so the convection terms appear with y_i and y_i-1 (ci and cil)
-            For the stability of the scheme, we restrict the convection coefficient to
-            be non-negative, but this still allows spurious oscillations in some expanding cases.
-            
-            This scheme is not rearranged or simplified by a computer algebra system. 
-            """ 
+        """
+        Implements scheme b in Samarskii's text with some slight modifications to give a 
+        convection term rather than a reaction term. Implements the convection as a 
+        backward difference, so the convection terms appear with y_i and y_i-1 (ci and cil)
+        For the stability of the scheme, we restrict the convection coefficient to
+        be non-negative, but this still allows spurious oscillations in some expanding cases.
+        
+        This scheme is not rearranged or simplified by a computer algebra system. 
+        """ 
         g=self.g.u
         n=len(g[0])-2
         def aiv(l,v):
@@ -455,7 +426,7 @@ class diffusion_old(method):
                     self.g.l.info("Accuracy goal reached for i={} in {} iterations.".format(i,iter))
                     break
                 if iter > itermax:
-                    self.g.l.info("Iteration maximum reached for i={}.  Final absolute error: {}".format(i, amax(fabs(pn-p))))
+                    self.g.l.info("Iteration maximum reached for i={}. Final absolute error: {}".format(i, amax(fabs(pn-p))))
                     break
                 iter += 1
                 p=pn
@@ -463,14 +434,15 @@ class diffusion_old(method):
 
     def _calculate_python_1d_rev1(self,steperr=10**-7,itermax=50):
         #TODO: This scheme can also benefit from the changes made to rev2
-        """Implements scheme b in Samarskii's text with some slight modifications to give a 
-            convection term rather than a reaction term.  Implements the convection as a 
-            backward difference, so the convection terms appear with y_i and y_i-1 (ciu and cil)
-            
-            This scheme has been simplified by a computer algebra system, which seems to negatively
-            impact the numerical stability of the scheme.  Given the issues appearing with this
-            method and the experiments we have run, it seems prudent to discard this scheme completely.
-            """ 
+        """
+        Implements scheme b in Samarskii's text with some slight modifications to give a 
+        convection term rather than a reaction term.  Implements the convection as a 
+        backward difference, so the convection terms appear with y_i and y_i-1 (ciu and cil)
+        
+        This scheme has been simplified by a computer algebra system, which seems to negatively
+        impact the numerical stability of the scheme. Given the issues appearing with this
+        method and the experiments we have run, it seems prudent to discard this scheme completely.
+        """ 
         def aiv(i,v):
             #return 0.5*(self.ktxu(v[i-1])+self.kxtu(v[i])))
             return 0.5*(pow(v[i-1],self.sigma)+pow(v[i],self.sigma))
@@ -538,14 +510,15 @@ class diffusion_old(method):
             g[i]=pn
 
     def _calculate_python_1d_schemea(self):
-        """Implements scheme a in Samarskii's text with some slight modifications to give a 
-            convection term rather than a reaction term.  Implements the convection as a 
-            backward difference.
-            
-            This scheme has been simplified by a computer algebra system, which may detrimentally
-            effect the numerical stability. 
-            """ 
-            #TODO: Rewrite this scheme in a more readable form.
+        """
+        Implements scheme a in Samarskii's text with some slight modifications to give a 
+        convection term rather than a reaction term. Implements the convection as a 
+        backward difference.
+        
+        This scheme has been simplified by a computer algebra system, which may detrimentally
+        effect the numerical stability. 
+        """ 
+        #TODO: Rewrite this scheme in a more readable form.
         tax=self.g._get_timelike_axis()
         oax=[l for l in range(self.g.u.ndim) if l != tax]
         oax=oax[0]#FIXME: There should be a better way to do this

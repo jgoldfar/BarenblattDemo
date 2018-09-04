@@ -10,4 +10,4 @@ pipelines:
     - step:
         script:
           - apt-get update && apt-get install -y chktex pgf
-          - make check l-check-compile
+          - make -C doc check l-check-compile

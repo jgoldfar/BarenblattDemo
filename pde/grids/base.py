@@ -3,6 +3,8 @@ from ..log import plog
 #TODO: Allow all grid objects to emulate numeric types
 #TODO: Allow all grid objects to emulate container types
 #TODO: Build reasonable special functions for grid objects (i.e. __str__(), etc)
+#TODO: Choose standard order to axes and remove _timelike_axes helpers: depending on
+# ordering in memory, only one time-like axis probably makes sense.
 #TODO: See http://docs.python.org/reference/datamodel.html
 class trivgrid(object):
     def __init__(self,u=None,nt=None):
@@ -44,6 +46,13 @@ class grid(trivgrid):
         self.u, self.active = tfile['u'], tfile['active']
 
     def save(self, fname=None, fmt=1):
+        """
+        Save the current grid to the file `fname`; by default, the active-area information
+        is saved alongside. To change from the default, set `fmt` to something other than
+        `1`. If `fname` is not given, save to a temporary file.
+        
+        Returns the saved file name
+        """
         if fname is None:
             self.l.warning('Saving to temporary file')
             from tempfile import TemporaryFile
@@ -54,10 +63,14 @@ class grid(trivgrid):
             numpy.savez(fname, u=self.u, active=self.active)
         else:
             numpy.savetxt(fname,self.u)
-            self.l.warning('Information about active region will not be exported to text file.')
+            self.l.warning('Information about active region will not be exported to file.')
         return fname
     
     def get_ind_range(self, ax, aset='all'):
+        """
+        Get all valid indices in the current grid for axis `ax` in the set `aset`.
+        `aset` may be one of 'all' or 'active'
+        """
         if aset == 'all':
             return range(self.u.shape[ax]);
         elif aset == 'active':
@@ -69,7 +82,8 @@ class grid(trivgrid):
     def _set_active_xv(self, xv):
         """
         Internal:   Set the domain interior (self.active) through 
-                    a list of x values xv"""
+                    a list of x values xv
+        """
         self._set_active_ind(map(self.x_to_ind, xv))
 
     def _set_active_ind(self, indices):
@@ -80,61 +94,48 @@ class grid(trivgrid):
         self.active = indices
 
     def _timelike_step(self, prevind, delta=1):
+        """
+        Take a step of length `delta` in the time-like direction from position `prevind`.
+        """
         return self._ax_step(prevind, self._get_timelike_axis(), delta)
     
     @classmethod
     def _ax_step(cls, prevind, ax, delta=1):
+        """
+        Take a step of length `delta` in the direction `ax` from position `prevind`.
+        """
         #FIXME: Now that this is a class method, there should be a method
         # which does bound checking
-        if isinstance(ax, type(1)):
-            e = cls._get_basis_elem_static(ax, len(prevind))
-        else:
-            raise TypeError(plog.type_err('ax',type(ax),'int'))
+        e = cls._get_basis_elem_static(ax, len(prevind))
         return cls._add(prevind, cls._scale(e, delta))
 
     def _set_timelike_axis(self, axis):
-        if isinstance(axis, type(1)):
-            self.l.debug('Timelike axis is {}'.format(axis))
-            self.timelike = axis
-        else:
-            raise TypeError(self.l.type_err('axis','int',type(axis)))
+        """
+        Set axis index `axis` to be the time-like axis for this grid.
+        """
+        self.timelike = axis
         
     def _get_timelike_axis(self):
-        if self.timelike is None:
-            self.l.warning('Grid has not defined a timelike axis. Guessing zero, which seems likely.')
-            return 0
-        else:
-            return self.timelike
+        """
+        Get axis index corresponding to the time-like axis.
+        """
+        return self.timelike
 
     @staticmethod
     def _scale(ind, scale):
-        ind = list(ind)
-        for i in range(len(ind)):
-            ind[i] = ind[i] * scale
-        return tuple(ind)
+        return [scale*i for i in ind]
 
     @staticmethod
-    def _add(ind1, ind2, zerofill=False):
-        #TODO: Add capability for adding vectors of different lengths by filling to larger size with zeros
-        if len(ind1) == len(ind2):
-            ind1 = list(ind1)
-            ind2 = list(ind2)
-            for i in range(len(ind1)):
-                ind1[i] += ind2[i]
-            return tuple(ind1)
-        else:
-            raise ValueError(
-                        'Index dimension mismatch: ind1 has {}dimensions, ind2 has {} dimensions'.format(len(ind1), len(ind2))
-                        )
+    def _add(ind1, ind2):
+        return [i1 + i2 for (i1, i2) in zip(ind1, ind2)]
     
     @classmethod
     def _sub(cls, ind1, ind2):
-        return cls._add(ind1, cls._scale(ind2, -1.0))
+        return [i1 - i2 for (i1, i2) in zip(ind1, ind2)]
         
     @classmethod
     def _dist(cls, ind1, ind2):
         #print numpy.hypot(ind1,ind2)
-        #print sum(x**2 for x in cls._sub(ind1,ind2))**(0.5)
         #TODO: Should be able to use (faster?) numpy linalg package command for this.
         return sum(x ** 2 for x in cls._sub(ind1, ind2)) ** (0.5)
     
@@ -162,15 +163,11 @@ class grid(trivgrid):
             ind = numpy.transpose(
                                 numpy.indices(self.u.shape)
                                 ).reshape((numpy.prod(self.u.shape), self.u.ndim))
-#       print ind
         if ax == 'timelike':
             ax = self._get_timelike_axis()
         elif not isinstance(ax, type(1)):
             raise TypeError(self.l.type_err('ax','int',type(ax)))
-        t = []
-        for i in ind:
-            if i[ax] == val:
-                t.append(i)
+        t = [i for i in ind if i[ax] == val]
         if len(t) > 0:
             return map(tuple, numpy.vstack(t[:]))
         else:

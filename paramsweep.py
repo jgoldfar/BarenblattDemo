@@ -10,28 +10,27 @@ from numpy import linspace, linalg
 from os import path
 import os
 
-def do_sweep(basedir, sigma, nbeta, ngamma):
+def do_sweep(basedir, sigma, nbeta, ngamma, dx = 1e-2, dt = 4e-3):
 	dirWithRun = path.join(basedir, 'run'+str(sigma))
 	if not path.isdir(dirWithRun):
 		os.makedirs(dirWithRun)
+	b = 0.01
+	threshold1 = 1e-1
+	threshold2 = 1e-2
 	with open(path.join(dirWithRun, 'results.dat'), 'w') as f:
-		f.write("sigma,b,beta,gamma,diff_10e-2,diff_10e-3\n")
+		f.write('sigma,b,beta,gamma,diff_' + str(threshold1) + ',diff_' + str(threshold2) + '\n')
 		for beta in linspace(0,1,nbeta):
-			for b in [0.01]:
-				for gamma in linspace(0.9,1.8,ngamma):
-					grid = twoddir((0.004, 0.1), [(0, 0.01), (-2, 2)])
-					grid.set_active_int_plus_top()
-					grid.set_bc(hom.dd_xpowalpha(grid, gamma, cutoff=True))
-					soln = diffusion(grid,b,beta,sigma)
-					try:
-						soln.calculate()
-					except linalg.LinAlgError:
-						f.write(str(sigma) + "," + str(b) + "," + str(beta) + "," + str(gamma) + "," + str(-1000) + "," + str(-1000) + "\n")
-						soln.l.warning('Unhandled linear algebra error.')
-						continue
-					sp2 = tr(soln.g, 0.1)
-					sp3 = tr(soln.g, 0.01)
-					f.write(str(sigma) + "," + str(b) + "," + str(beta) + "," + str(gamma) + "," + str(sp2.rex[len(sp2.rex) - 1] - sp2.rex[0]) + "," + str(sp3.rex[len(sp3.rex) - 1] - sp3.rex[0]) + "\n")
+			for gamma in linspace(0.9,1.8,ngamma):
+				grid = twoddir(h=(dt, dx), rx = [(0, 0.01), (-2, 2)])
+				for (j, xj) in enumerate(grid.x[1]):
+					grid.u[0, j] = hom._negxpowalpha(xj, gamma)
+				
+				soln = diffusion(grid,b,beta,sigma)
+				
+				gridout = soln.calculate()
+				sp2 = tr(soln.g, threshold1)
+				sp3 = tr(soln.g, threshold2)
+				f.write(str(sigma) + "," + str(b) + "," + str(beta) + "," + str(gamma) + "," + str(sp2.rex[-1] - sp2.rex[0]) + "," + str(sp3.rex[-1] - sp3.rex[0]) + "\n")
 
 # CLI
 import argparse
@@ -41,7 +40,9 @@ parser.add_argument("basedir", help="Base directory for result output")
 parser.add_argument("sigma", help="sigma exponent for PME", type=float)
 parser.add_argument("--nbeta", help="Number of beta values to test", type=int, default=2)
 parser.add_argument("--ngamma", help="Number of gamma values to test", type=int, default=2)
+parser.add_argument("--dx", help="Space grid spacing", type=float, default=1e-2)
+parser.add_argument("--tau", help="Time grid spacing", type=float, default=4e-3)
 
 args = parser.parse_args()
 
-do_sweep(args.basedir, args.sigma, args.nbeta, args.ngamma)
+do_sweep(args.basedir, args.sigma, args.nbeta, args.ngamma, args.dx, args.tau)

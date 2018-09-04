@@ -7,7 +7,6 @@ from pde.grids.uniform import twoddir
 from pde.grids.base import trivgrid
 from pde.methods.explicit import diffusion
 from pde.bc import hom
-from pde.interface import spt
 from numpy import array, savetxt
 
 from os import path

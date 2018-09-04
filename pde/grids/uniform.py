@@ -14,7 +14,7 @@ class uniformgrid(grid,active_manip):
         everywhere and an active set self.active of appropriate number of dimensions also 
         initialized to zero. Note that the active set by default limits index values to
         be 16  bit integers, which gives us a large space over which we may calculate the
-        solution,  but could run out for enormous grid sizes.
+        solution, but could run out for enormous grid sizes.
         Also, sets self.t to be the type of the solution grid for future reference.
         """
         #TODO: This implementation can be made faster/leaner by not storing all of the x values
@@ -22,7 +22,7 @@ class uniformgrid(grid,active_manip):
         super(uniformgrid, self).__init__(numpy.zeros(dims, type), numpy.zeros((1,2),'int16'))
 
         if x is None:
-            self.x=map(lambda x:numpy.linspace(0,1,x,True),dims)
+            self.x=map(lambda xi:numpy.linspace(0,1,xi,True),dims)
         else:
             self.x=x
             
@@ -74,7 +74,7 @@ class uniformgrid(grid,active_manip):
 
 class twoddir(uniformgrid):
     """Test case for a two dimensional grid"""
-    def __init__(self, h=(0.1,0.1),rx=[(0,1),(0,1)], n=None):
+    def __init__(self, h=(0.1,0.1), rx=[(0,1),(0,1)], n=None):
         #TODO: More clearly give option to choose number of grid points
         if len(h) != len(rx):
             raise ValueError(
@@ -125,7 +125,6 @@ class twoddir(uniformgrid):
             self._set_bc_right(args[0])
         else:
             raise ValueError('1 or 2 arguments expected to set_lat_bc, {} given.'.format(len(args)))
-#       self._set_bc_left()
         
     def set_ic(self,fn):
         """Set the initial condition (where row#=0) according to fn"""

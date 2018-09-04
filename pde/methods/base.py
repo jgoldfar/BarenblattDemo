@@ -1,21 +1,13 @@
 """ Base method """
 
-from ..grids.base import grid as gr
 from ..log import plog
 
 class method(object):
-	def __init__(self, grid=None):
+	def __init__(self, grid):
 		super(method,self).__init__()
 		self.l=plog(str(self.__class__))
 		self.l.info(self.l.newinst_info('method',self.__class__))
-		if grid is not None:
-			self.set_grid(grid)
-
-	def set_grid(self,grid):
-		if issubclass(type(grid),gr):
-			self.g=grid
-		else:
-			raise TypeError(self.l.type_err('grid',type(gr),type(grid)))
+		self.g = grid
 
 	def __call__(self):
 		self.calculate()

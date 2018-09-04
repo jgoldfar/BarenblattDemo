@@ -2,71 +2,77 @@
 from .base import method, differencer
 
 class diffusion(method):
-    def __init__(self,grid=None,b=0,beta=1,alpha=1,ktxu=None):
+    """
+    Calculate diffusion operator corresponding to the PDE
+    u_t - (ktxu(t, x, u) u_x)_x - b*(u^beta)_x
+    If `ktxu` is not given, it is set according to u^(alpha).
+    """
+    def __init__(self,grid,b=0,beta=1,alpha=1,ktxu=None):
         super(diffusion,self).__init__(grid)
         if ktxu is None:
             def tmp(t,x,u):
-                return alpha 
+                return pow(u, alpha)
             self.ktxu = tmp
         else:
             self.ktxu=ktxu
-            
         self.b=b
         self.beta=beta
-        self.alpha=alpha
         
-    @staticmethod
-    def _grid_allows_stencil(grid):
-        #TODO: Implement grid checking
-        super(diffusion,self)._grid_allows_stencil()
-
     def calculate(self):
-        if self.g.u.ndim==2:
-            self._calculate_python_1d()
-        else:
-            raise NotImplementedError('Grids with more than one spatial dimension not supported.')
+        return self._calculate_python_1d(self.g, self.b, self.beta, self.ktxu)
+    
+    @staticmethod
+    def _calculate_python_1d(grid, b, beta, ktxu):
+        tax = grid._get_timelike_axis()
+        oax=[l for l in range(grid.u.ndim) if l != tax]
+        oax=oax[0] #FIXME: This supports only one space dimension.
+        #FIXME: This implementation seems to have been subtly broken due to excessive (?)
+        # but not careful encapsulation of details of grid. For now, we'll completely 
+        # break this abstraction to see how this works...
+        tvals = grid.x[tax]
+        dt = tvals[1] - tvals[0]
+        
+        # This is "safe" since we didn't handle irregular space grids anyways
+        xvals = grid.x[oax]
+        dx = xvals[1] - xvals[0]
+        
+        cfl = dt/pow(dx, 2)
+        for (i, ti) in enumerate(tvals):
+            if i == 0:
+                continue
+            for (j, xj) in enumerate(xvals):
+                if j == 0 or j == (len(xvals)-1):
+                    continue
+                yi=grid.u[i - 1, j]
+                yip=grid.u[i - 1, j + 1]
+                yim=grid.u[i - 1, j - 1]
                 
-    def _calculate_python_1d(self):
-        tax=self.g._get_timelike_axis()
-        oax=[l for l in range(self.g.u.ndim) if l != tax]
-        oax=oax[0]
-        for i in self.g.get_ind_range(ax=tax,aset='active'):
-            #TODO: This can be written as a matrix multiplication (much quicker!)
-            #Note that this algorithm was simplified by the help of a computer algebra
-            # system; this may actually decrease the numerical accuracy of the 
-            # scheme.
-            curr=self.g.get_plane_ind(val=i,ax=tax,aset='active')
-            for ind in curr:
-                ua=self.g._ax_step(ind,tax,-1)
-                xi=self.g.ind_to_x(ua)
-                ub=self.g._ax_step(ua,oax,-1)
-                xim=self.g.ind_to_x(ub)
-                uc=self.g._ax_step(ua,oax,1)
-                xip=self.g.ind_to_x(uc)
-                dt=self.g._dist(self.g.ind_to_x(ind),xi)
-                dx1=self.g._dist(xim,xi)
-                #dx2=self.g._dist(xip,xi)
-                yi=self.g.u[ua]
-                t=xi[tax]
-                yip=self.g.u[uc]
-                yim=self.g.u[ub]
+                kyi = ktxu(ti,xj,yi)
                 
-                kyi = self.ktxu(t,xi[oax],yi)
-                kyim = self.ktxu(t,xim[oax],yim)
-                kyip = self.ktxu(t,xip[oax],yip)
+                kyim = ktxu(ti,xj-dx,yim)
+                
+                kyip = ktxu(ti,xj+dx,yip)
+                
+                # Scheme 1 from Samarskii
+                aiv = (kyim + kyi)/2
+                aipv = (kyip + kyi)/2
+                
                 if yi<=0: # Outside support of solution
                     powyi = 0
                 else: 
-                    powyi = pow(yi,self.beta-1)
+                    powyi = pow(yi, beta - 1)
                 
-                self.g.u[ind]=(
-                    dt*(
-                    (yim - yi + yip) * kyi +
-                    yim*kyim +
-                    (yip - yi)*kyip
-                    ) +
-                    2*dx1*(dx1*yi + self.b*self.beta*dt*(yim-yi)*powyi)
-                )/(2*pow(dx1,2) + dt*(kyi + kyim))
+                if yim <= 0:
+                    powyim = 0
+                else:
+                    powyim = pow(yim, beta - 1)
+                
+                grid.u[i, j]=yi + (
+                    cfl*(
+                    aipv*(yip - yi) - aiv*(yi - yim)
+                    ) + ((dt/dx) * b * (powyi-powyim))
+                    )
+        return grid
 
 class ftcs_1d(method):
     #TODO: Implement FTCS for objective functions of form F(t,x,u,ux1,...,uxn,ux1x1,...,uxnxn)

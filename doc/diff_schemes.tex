@@ -1,0 +1,353 @@
+\documentclass[12pt, reqno]{amsart}
+\usepackage[l2tabu, orthodox]{nag}
+\usepackage[T1]{fontenc}
+%\usepackage{lmodern} % math, rm, ss, tt
+\usepackage{baskervald}
+%\numberwithin{equation}{section} %Uncomment if you want per-section equation numbering
+\usepackage[numbers]{natbib}
+
+\newcommand{\D}[2]{\frac{\partial{} #1}{\partial{} #2}}
+\newcommand{\bk}[1]{\left\{#1\right\}}
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\R}{\field{R}}
+\newcommand{\Rn}{\R^{n}}
+
+\begin{document}
+\title{Difference schemes for Diffusion-Convection Equation}
+\author{Max Goldfarb}
+\thanks{}
+\email{jgoldfar@my.fit.edu}
+\address{Mathematical Sciences Department\\Florida Institute of Technology\\150 W.\ University Blvd.\\Melbourne, FL 32901}
+\date{\today}
+\maketitle
+\section{Introduction}
+In his text on the Theory of Difference schemes~\citep{samarskii01}, A.\ A.\ Samarskii gives two implicit numerical schemes for nonlinear reaction-diffusion type equations of the form
+\[ \D{u}{t}=\D{}{x}\left( k(u)\D{u}{x}\right)+f(u, u_x),\qquad a < x < b,\quad 0 < t \leq T\]
+where $k(u)>0$.
+Of course this condition is not met with strict inequality in the case of power-law type coefficient of diffusion, which is the case we study.
+We wish to first modify these schemes for diffusion-convection equations, and later find and prove sufficient conditions for their convergence.
+We consider the given problem on an evenly spaced grid
+\[
+  \omega=\bk{(x_{i},t_{i}):x_{i}=i \frac{b-a}{n} + a,
+    ~ i=0,\ldots,n,
+    ~t_{j}=j \frac{T}{m},
+    ~j=0,\ldots,m}
+\]
+Set the grid spacing $h=\frac{b-a}{n}=x_{i+1}-x_{i}$, $i=0,\ldots,n-1$ and $\tau=\frac{T}{m}=t_{j+1}-t_{j}$, $j=0,\ldots,m-1$.
+We set $y_{i}^{j}=u(x_{i},t_{j})$ and denote $\hat{y}_{i}=y_{i}^{j+1}$ and $y_{i}=y_{i}^{j}$.
+We will also make use of any of the various interpolated diffusion coefficients, all denoted by $a_{i}(v)$ for some vector $v$, which can have the form
+\begin{align}
+  a_{i}(v) & =\frac{1}{2}\big( k(v_{i-1})+k(v_{i})\big)\label{eq:ai-param-1}
+  \\
+  a_{i}(v) & =k\left(\frac{v_{i-1} + v_{i}}{2}\right)\label{eq:ai-param-2}
+  \\
+  a_{i}(v) & =\frac{2k(v_{i-1})k(v_{i})}{k(v_{i-1})+k(v_{i})}\label{eq:ai-param-3}
+\end{align}
+Samarskii states that scheme~\eqref{eq:ai-param-1} seems most accurate for the case $k(u)=k_{0}u^{\sigma}$, and~\eqref{eq:ai-param-3} is quite useless.
+Indeed, with~\eqref{eq:ai-param-3} it is clear that temperature waves moving against a zero background temperature as in our experiments will have no diffusion at the temperature front.
+He also remarks that both schemes are absolutely stable and have the error of approximation $O(\tau^{2}+h^{2})$.
+When substituting a convection-type term for $f$ and trying to calculate a solution in which a temperature wave moves against a background of zero temperature, a differentiability issue arises near the interface (which is one of the fascinating analytic properties of the porous medium equation) but which of course causes numerical blow-up as the $x$-grid spacing decreases.
+\section{Explicit Finite Difference Scheme}
+Before describing the implicit schemes, let us first consider the simplest possible scheme, which is explicit with respect to the unknown values of $u$ on the next time level.
+\begin{equation}
+  \frac{\hat{y}_{i}-y_{i}}{\tau}
+  =\frac{1}{h^{2}}\left[a_{i+1}(y)\big( y_{i+1}-y_{i}\big) - a_{i}(y)\big(y_{i}-y_{i-1}\big) \right]
+  + f(y_{i}, y_{ix})\label{eq:scheme-explicit}
+\end{equation}
+Choosing $k(u)=u^{\sigma}$ and $f(u, u_x) = b \left(u_x\right)^{\gamma}$, we find
+\begin{gather*}
+  \frac{\hat{y}_{i}-y_{i}}{\tau}
+  =\frac{1}{h^{2}}\left[
+  a_{i+1}(y)\big( y_{i+1}-y_{i}\big) - a_{i}(y)\big(y_{i}-y_{i-1}\big)
+  \right]
+  + b \left(y_{ix}\right)^{\gamma}
+  \intertext{which gives}
+  \hat{y}_{i}
+  =y_{i} + \frac{\tau}{h^{2}}\left[
+  a_{i+1}(y)\big( y_{i+1}-y_{i}\big) - a_{i}(y)\big(y_{i}-y_{i-1}\big)
+  \right]
+  + \tau b \left(y_{ix}\right)^{\gamma}\label{eq:scheme-explicit-NDCE}
+\end{gather*}
+This scheme is implemented in the Python package as 
+\section{Samarskii's scheme A}
+Scheme A is linear in the layer $\hat{y}$, which makes it easier to compute, but perhaps has other disadvantages.
+The scheme is stated as
+\begin{equation}
+  \frac{\hat{y}_{i}-y_{i}}{\tau}=\frac{1}{h^{2}}\left[a_{i+1}(y)\big( \hat{y}_{i+1}-\hat{y}_{i}\big) - a_{i}(y)\big(\hat{y}_{i}-\hat{y}_{i-1}\big) \right] + f(y_{i})\label{eq:scheme-a}
+\end{equation}
+We rearrange this to write in a tridiagonal matrix form as an equation $A \hat{y}=b$, in order to solve numerically for the vector $\hat{y}$.
+To do so, we isolate the terms corresponding to $\hat{y}_{i+1}$, $\hat{y}_{i}$, and $\hat{y}_{i-1}$.
+\begin{align*}
+  \hat{y}_{i} & =\frac{\tau}{h^{2}}\left[a_{i+1}(y)\big( \hat{y}_{i+1}-\hat{y}_{i}\big) - a_{i}(y)\big(\hat{y}_{i}-\hat{y}_{i-1}\big) \right] + \tau f(y_{i})+y_{i}
+  \\
+  \hat{y}_{i} & = \frac{\tau}{h^{2}}a_{i+1}(y)\hat{y}_{i+1}-\frac{\tau}{h^{2}}a_{i+1}(y)\hat{y}_{i}- \frac{\tau}{h^{2}}a_{i}(y)\hat{y}_{i}+ \frac{\tau}{h^{2}}a_{i}(y)\hat{y}_{i-1} + \tau f(y_{i}) +y_{i}
+\end{align*}
+So
+\[
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)\right)\hat{y}_{i}+\left(- \frac{\tau}{h^{2}}a_{i}(y)\right)\hat{y}_{i-1} = \tau f(y_{i}) +y_{i}
+\]
+For future reference, we denote the coefficients on $\hat{y}_{i+1}$ by $c^{u}_{i}$, on $\hat{y}_{i}$ by $c_{i}$, and on $\hat{y}_{i-1}$ by $c^{l}_{i}$.
+We also set
+\[
+  b_{i}=\begin{cases}
+    \tau f(y_{1}) + y_{1} - c_{1}^{l}       & i=1              \\
+    \tau f(y_{n-1}) + y_{n-1} - c_{n-1}^{u} & i=n-1            \\
+    \tau f(y_{i}) + y_{i}                   & \text{otherwise}
+  \end{cases}
+\]
+It is clear that the matrix in this case will have the form as above, $A \hat{y}=b$, where
+\[
+  A=\begin{pmatrix}
+    c_{1}     & c^{u}_{1} & 0         & 0         & \cdots & 0           & 0       \\
+    c^{l}_{2} & c_{2}     & c^{u}_{2} & 0         & \cdots & 0           & 0       \\
+    0         & c^{l}_{3} & c_{3}     & c^{u}_{3} & \ddots & 0           & 0       \\
+    \vdots    & \ddots    & \ddots    & \ddots    & \ddots & c_{n-1}^{l} & c_{n-1}
+  \end{pmatrix},\qquad
+  b=\begin{pmatrix}
+    b_{1} \\ \vdots \\ b_{n-1}
+  \end{pmatrix}
+\]
+We consider the kinds of modifications to the scheme which we may apply at this point, since $f$ depends on $y_{x}$ and $y$, in our case.
+We may choose for $f$ to depend solely on $y$, solely on $\hat{y}$, or on some combination.
+It seems natural that given this scheme we choose $f$ to depend only on the previous time and calculate the derivative $y_{x}$ from the previous time.
+We are then left also with the choice of forward, backward, or centered difference approximation to the derivative.
+Here there is no clear choice as to which is preferable.
+
+\subsection{Modification 1}
+In this modification we consider $f$ to depend only on $y$, as is assumed in the original statement of the scheme.
+Denote by $\tilde{y}_{i}$ one of the approximations to the derivative,
+\begin{align}
+  \tilde{y}_{i} & =\frac{y_{i}-y_{i-1}}{h}\label{eq:yx-backward}    \\
+  \tilde{y}_{i} & =\frac{y_{i+1}-y_{i}}{h}\label{eq:yx-forward}     \\
+  \tilde{y}_{i} & =\frac{y_{i+1}-y_{i-1}}{2h}\label{eq:yx-centered}
+\end{align}
+Formally, we may simply let $f=f(\tilde{y},y)$ and solve with a modified vector $b$.
+Intuitively, this is the most attractive option for both schemes, as in this case the invertibility of the matrix $A$ is unchanged.
+\subsection{Modification 2}
+It is possible to imagine a modified scheme in which $f$ depends linearly on the derivative $y_{x}$ from the next time; then the matrix $A$ will be composed of different entries; suppose $f(y_{x},y)=g(y)y_{x}$.
+Then we can choose one of~\eqref{eq:yx-backward}--\eqref{eq:yx-centered} and rearrange the equation above to arrive at another scheme
+\subsubsection{Backward Difference Approximation}
+Substituting~\eqref{eq:yx-backward} and $f(y_{x},y)$ for $f$, we get
+\begin{align*}
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)\right)\hat{y}_{i}+\left(- \frac{\tau}{h^{2}}a_{i}(y)\right)
+   & \hat{y}_{i-1}
+  \\
+   & = \frac{\tau g(y_{i})}{h}\hat{y}_{i}-\frac{\tau g(y_{i})}{h}\hat{y}_{i-1} +y_{i}
+\end{align*}
+So
+\begin{align*}
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)-\frac{\tau g(y_{i})}{h}\right)\hat{y}_{i}
+   & +\left(- \frac{\tau}{h^{2}}a_{i}(y)+\frac{\tau g(y_{i})}{h}\right)\hat{y}_{i-1}
+  \\
+   & \qquad\qquad\qquad = y_{i}
+\end{align*}
+\subsubsection{Forward Difference Approximation}
+Substituting~\eqref{eq:yx-forward} and $f(y_{x},y)$ for $f$, we get
+\begin{align*}
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)\right)\hat{y}_{i}
+   & +\left(- \frac{\tau}{h^{2}}a_{i}(y)\right)\hat{y}_{i-1}
+  \\
+   & \qquad = \frac{\tau g(y_{i})}{h}\hat{y}_{i+1}-\frac{\tau g(y_{i})}{h}\hat{y}_{i} +y_{i}
+\end{align*}
+So
+\begin{align*}
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)-\frac{\tau g(y_{i})}{h}\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)+\frac{\tau g(y_{i})}{h}\right)\hat{y}_{i}
+   & +\left(- \frac{\tau}{h^{2}}a_{i}(y)\right)\hat{y}_{i-1}
+  \\
+   & \qquad\qquad = y_{i}
+\end{align*}
+\subsubsection{Centered Difference Approximation}
+Substituting~\eqref{eq:yx-centered} and $f(y_{x},y)$ for $f$, we get
+\begin{align*}
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)\right)\hat{y}_{i}
+   & +\left(- \frac{\tau}{h^{2}}a_{i}(y)\right)\hat{y}_{i-1}
+  \\
+   & \qquad = \frac{\tau g(y_{i})}{2h}\hat{y}_{i+1}-\frac{\tau g(y_{i})}{2h}\hat{y}_{i-1} +y_{i}
+\end{align*}
+So
+\begin{align*}
+  \left(- \frac{\tau}{h^{2}}a_{i+1}(y)-\frac{\tau g(y_{i})}{2h}\right)\hat{y}_{i+1}+\left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(y)+ a_{i}(y)\big)\right)\hat{y}_{i}
+   & +\left(- \frac{\tau}{h^{2}}a_{i}(y)+\frac{\tau g(y_{i})}{2h}\right)\hat{y}_{i-1}
+  \\
+   & \qquad\qquad = y_{i}
+\end{align*}
+
+It may be that the preference relation between these depends on how the off-diagonal elements end up being weighted differentially compared to the diagonal elements.
+\section{Samarskii's scheme B}
+Scheme B is nonlinear in the layer $\hat{y}$, so an iteration is given in
+addition to the scheme itself (but Newton's method could be applied to the same
+effect.)
+Samarskii notes that this scheme requires double the storage of compared to scheme A, since two values of the iteration must be kept in memory, but on modern computers the issue of memory limitation is much reduced; this may be an issue for problems requiring many spatial grid nodes.
+He also notes that in practice this scheme achieves the same accuracy
+\begin{equation}
+  \frac{\hat{y}_{i}-y_{i}}{\tau}=\frac{1}{h^{2}}\left[a_{i+1}(\hat{y})\big( \hat{y}_{i+1}-\hat{y}_{i}\big) - a_{i}(\hat{y})\big(\hat{y}_{i}-\hat{y}_{i-1}\big) \right] + f(\hat{y}_{i})\label{eq:scheme-b}
+\end{equation}
+Each time step is computed, starting with an initial approximation $\hat{y}^{(0)}=y$, by an iteration which is itself linear; letting $\hat{y}^{(s)}$ be the result of the $s$-th iteration of the method,
+\begin{equation}
+  \frac{\hat{y}^{(s+1)}_{i}-y_{i}}{\tau}=\frac{1}{h^{2}}\left[a_{i+1}(\hat{y}^{(s)})\big( \hat{y}^{(s+1)}_{i+1}-\hat{y}^{(s+1)}_{i}\big) - a_{i}(\hat{y}^{(s)})\big(\hat{y}^{(s+1)}_{i}-\hat{y}^{(s+1)}_{i-1}\big) \right] + f(\hat{y}^{(s)}_{i})\label{eq:scheme-b-iter}
+\end{equation}
+This iteration is evidently a contraction on $\Rn$; it would be interesting to show this eventually, as well as derive an iteration using Newton's method for this problem.
+We continue in this way until some accuracy goal $\epsilon>0$ is achieved,
+\[ \left|\hat{y}^{(s+1)}-\hat{y}^{(s)} \right| \leq \epsilon\]
+The iteration has the nearly identical form, and can be solved in much the same way as scheme A above.
+Rearranging the above equation, we have
+\begin{align*}
+  \hat{y}^{(s+1)}_{i}        & =\frac{\tau}{h^{2}}\left[a_{i+1}(\hat{y}^{(s)})\big( \hat{y}^{(s+1)}_{i+1}-\hat{y}^{(s+1)}_{i}\big) - a_{i}(\hat{y}^{(s)})\big(\hat{y}^{(s+1)}_{i}-\hat{y}^{(s+1)}_{i-1}\big) \right]
+  \\
+                             & \qquad+ f(\hat{y}^{(s)}_{i})+y_{i}
+  \\
+  \hat{y}^{(s+1)}_{i}        & =\left[\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})\big( \hat{y}^{(s+1)}_{i+1}-\hat{y}^{(s+1)}_{i}\big) - \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\big(\hat{y}^{(s+1)}_{i}-\hat{y}^{(s+1)}_{i-1}\big) \right]
+  \\
+                             & \qquad + f(\hat{y}^{(s)}_{i})+y_{i}
+  \intertext{So}
+  f(\hat{y}^{(s)}_{i})+y_{i} & =\hat{y}^{(s+1)}_{i} -\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})\hat{y}^{(s+1)}_{i+1}
+  \\
+                             & \qquad+\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})\hat{y}^{(s+1)}_{i} + \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\hat{y}^{(s+1)}_{i}-\frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\hat{y}^{(s+1)}_{i-1}
+  \\
+  f(\hat{y}^{(s)}_{i})+y_{i} & = \left(1+\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})+ \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\right)\hat{y}^{(s+1)}_{i}
+  \\
+                             & \qquad +\left(-\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})\right)\hat{y}^{(s+1)}_{i+1}+\left( -\frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\right)\hat{y}^{(s+1)}_{i-1}
+\end{align*}
+
+We again set $c_{i}$, $c_{i}^{l}$, and $c_{i}^{u}$ to be the expressions for the coefficients, now on $\hat{y}^{(s+1)}_{i}$, $\hat{y}^{(s+1)}_{i-1}$, and $\hat{y}^{(s+1)}_{i+1}$, respectively.
+Consider now the two different ways we may approach modifying \emph{this} iteration process; they fall into the same two categories.
+\subsection{Modification 1}
+Here again if $f=f(y_{x},y)$, we may calculate the spatial derivative from the previous iteration; letting $\tilde{y}_{i}^{(s)}$ be an approximation to the derivative of $\hat{y}^{(s)}$ at $x=x_{i}$ as in~\eqref{eq:yx-backward}-\eqref{eq:yx-centered}; then the scheme is
+\begin{align*}
+  \left(1+\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})+ \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\right)\hat{y}^{(s+1)}_{i}
+                                                                               &
+  \\
+  +\left(-\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})\right)\hat{y}^{(s+1)}_{i+1} &
+  \\
+  +\left( -\frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\right)\hat{y}^{(s+1)}_{i-1}  &
+  \\
+                                                                               & \qquad = f(\tilde{y}_{i}^{(s)},\hat{y}^{(s)}_{i})+y_{i}
+\end{align*}
+One strength of this method is that, formally, $f$ may have any complicated dependence on $y_{x}$, $y$ (of course, convergence is a different matter!)
+\subsection{Modification 2}
+If $f$ depends linearly on $y_{x}$, then we may also choose to modify the scheme in the three ways as detailed for scheme A;\@ the manipulations are the same as there.
+Let $g$ be such that $f(y_{x},y)=g(y)y_{x}$.
+Then we may have
+\subsubsection{Backward Difference Approximation}
+Substituting~\eqref{eq:yx-backward} and $f(y_{x},y)$ for $f$, we get
+\[
+  \begin{aligned}
+    \left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(\hat{y}^{(s)})+
+    a_{i}(\hat{y}^{(s)})\big)-\frac{\tau
+      g(\hat{y}^{(s)})}{h}\right)
+     & \hat{y}_{i}^{(s+1)}
+    \\
+    +\left(-\frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})\right)
+     & \hat{y}_{i+1}^{(s+1)}
+    \\
+    +\left(- \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})+\frac{\tau
+      g(\hat{y}^{(s)})}{h}\right)
+     & \hat{y}_{i-1}^{(s+1)}
+    \\ &\qquad\qquad= y_{i}
+  \end{aligned}
+\]
+\subsubsection{Forward Difference Approximation}
+Substituting~\eqref{eq:yx-forward} and $f(y_{x},y)$ for $f$, we get
+\[
+  \begin{aligned}
+    \left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(\hat{y}^{(s)})+
+    a_{i}(\hat{y}^{(s)})\big)+\frac{\tau
+    g(\hat{y}^{(s)})}{h}\right) & \hat{y}_{i}^{(s+1)}
+    \\
+    +\left(-
+    \frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})-\frac{\tau
+    g(\hat{y}^{(s)})}{h}\right) & \hat{y}_{i+1}^{(s+1)}
+    \\
+    +\left(-
+    \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})\right)
+                                & \hat{y}_{i-1}^{(s+1)}
+    \\
+                                & \qquad\qquad= y_{i}
+  \end{aligned}
+\]
+\subsubsection{Centered Difference Approximation}
+Substituting~\eqref{eq:yx-centered} and $f(y_{x},y)$ for $f$, we get
+\begin{align*}
+  \left(1+\frac{\tau}{h^{2}}\big(a_{i+1}(\hat{y}^{(s)})+ a_{i}(\hat{y}^{(s)})\big)\right)
+   & \hat{y}_{i}^{(s+1)}
+  \\
+  +\left(- \frac{\tau}{h^{2}}a_{i+1}(\hat{y}^{(s)})-\frac{\tau g(y^{(s)})}{2h}\right)
+   & \hat{y}_{i+1}^{(s+1)}
+  \\
+  +\left(- \frac{\tau}{h^{2}}a_{i}(\hat{y}^{(s)})+\frac{\tau g(\hat{y}^{(s)})}{2h}\right)
+   & \hat{y}_{i-1}^{(s+1)}
+  \\
+   & \qquad\qquad = y_{i}
+\end{align*}
+
+It does seem intuitively that an approximation which treats the spatial derivative term as depending on the solution at the current time will be closer to the true solution, since then balance is found most closely for the same time level.
+It seems reasonable also that this might apply less strictly to the iterative process than that found in scheme A, and that the dependence of $g$ on $y^{(s)}$ may alter the convergence of this fixed point process.
+
+Though we have as a matter of convention written the convection coefficient $g$ as depending only on the value of the gridpoint $x_{i}$, it may well be that choosing some average of nearby values, either of $g$ or $x$ in a similar way to the parameterizations for $k$,~\eqref{eq:ai-param-1}--\eqref{eq:ai-param-3} would improve the accuracy of the scheme.
+
+\section{P.\ Matus' and S.\ Lemeshevsky's scheme}
+P.\ Matus' and S.\ Lemeshevsky's give an explicit scheme for the $d$-dimensional porous medium equation with no reaction or convection terms~\citep{matus09}.
+The problem is stated in a domain
+\[
+  \Omega^{d}=\bk{x=(x_{1},\ldots,x_{d}) \in
+  \R^{d}: a_{k} \leq x_{k} \leq b_{k},~k=1,2,\ldots,d}
+\]
+for a real valued function $u=u(t,x)$, $0 \leq t \leq T$, $x \in \bar{\Omega}^{d}$
+\[
+  \D{u}{t}=\D{}{x}\left( mu^{m-1}\D{u}{x}\right)+f(x,t),\qquad x \in
+  \Omega^{d},~ 0<t\leq T
+\]
+with boundary condition
+\[ u(t,x)=\mu(t,x),\qquad 0 <t \leq T, \quad x \in \partial \Omega^{d}\]
+and initial condition
+\[ u(0,x)=u_{0}(x),\qquad x \in \bar{\Omega}^{d}\]
+They discretize in a similar way in $d$ dimensions as we do in 1: given a time interval $\tau$ and a vector $h=(h_{1},\ldots,h_{d})$, the grid $\bar{\omega}^{d+1}=\bar{\omega}^{d}_{h}\times \bar{\omega}_{\tau}$, where
+\begin{align*}
+  \bar{\omega}_{\tau} & =\bk{t \in [0,T]:~t=j \tau,~j=0,1,\ldots,N_{t}~\text{such that}~N_{t}\tau=T}
+  \intertext{and the spatial grid is}
+  \bar{\omega}_{\tau} & =\bk{x \in \bar{\Omega}^{d}:~x_{k}=i_{k}h_{k}+a_{k},~i_{k}=0,1,\ldots,N_{k}~\text{such that}~N_{k}h_{k}=b_{k}-a_{k}}
+\end{align*}
+Matus and Lemeschevsky give the scheme as
+\begin{align*}
+  y_{t}                   & =\Delta_{h} y^{m} + f,\qquad t,x \in \omega^{d+1}
+  \intertext{where}
+                            \Delta_{h} y            & =\sum_{k=1}^{d}y_{\bar{x}_{k} x_{k}}
+  \\
+  y_{i,\bar{x}_{k} x_{k}} & =\frac{y_{x_{k}}-y_{\bar{x}_{k}}}{h_{k}}
+  \\
+  y_{i,x_{k}}             & =\frac{y_{i+1}-y_{i}}{h_{k}}
+  \\
+  y_{i,\bar{x}_{k}}       & =\frac{y_{i}-y_{i-1}}{h_{k}}
+\end{align*}
+and appropriate boundary and initial conditions are applied to the grid.
+In the case $m=2$ in which the complete their analysis of their problem, the scheme can be written in the convenient computational form
+\[
+  \hat{y}_{i}=\left( 1-2\tau\sum_{k=1}^{d}\frac{1}{h_{k}}\right)y_{i} +
+  \sum_{k=1}^{d}\frac{y_{i-1}^{2}+y_{i-1}^{2}}{h_{k}^{2}}+\tau
+  f(x_{1},\ldots,x_{n},t_{i})
+\]
+Matus and Lemeschevsky prove the stability, monotonicity, and convergence of this scheme to the analytic solution under the stringent requirements
+\begin{enumerate}
+  \item \[0<\kappa_{1}\leq u_{0}(x) \leq \kappa_{2}~\text{for}~x\in \bar{\Omega}^{d}\]
+  \item \[ u_{0}(x) \in C^{4}(\bar{\Omega}^{d}),\qquad \mu(t) \in C^{2}\]
+  \item \[\D{\mu}{t} \leq 0,\qquad f\geq 0, \D{f}{t} \leq 0~\text{for}~0<t\leq T,~ x\in\bar{\Omega}^{d}\]
+  \item \[\Delta u_{0}^{m} + f(0,x) \leq -\epsilon<0\]
+\end{enumerate}
+
+I believe that these requirements, particularly numbers 1 and 2 on the positivity and differentiability of the initial data $u_{0}(x)$, do not give it much application to the problem of determining interface evolution, even assuming that applicable modifications could be made to include a convection term while maintaining the convergence properties.
+Indeed, while proving convergence of the scheme, they assume that a sufficiently smooth solution $u$ exists, while the solutions we seek are weak solutions which may be only continuous or worse.
+However, this scheme was (accidentally) implemented and tested at the beginning of my work with numerical schemes through a misprint in A.\ A.\ Samarskii's text.
+Both of the other schemes and all of their modifications have been implemented.
+
+%\section{Further work: A fully nonlinear scheme?}
+%Is it possible to write a scheme for equations which are not linear in the
+%highest order derivatives?
+% Which may depend nonlinearly on $\hat{y}$ and its derivative and solve it by
+% Newton's method?
+% Would that have improved accuracy over these schemes at all?
+% Samarskii seems to indicate that such a scheme would not have any benefit for the reaction-diffusion equation, but his text does not cover diffusion-convection equations.
+
+\bibliographystyle{amsplain}
+\bibliography{thebib}
+
+\end{document}

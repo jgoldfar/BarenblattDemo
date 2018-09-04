@@ -52,6 +52,12 @@ class hom(object):
                 return sum(pow(float(x[i]>=0)*x[i],alpha)-pow(-1*float(x[i]<0)*x[i],alpha) for i in range(0,grid.u.ndim))
         return cls._tpl(grid, tmp)
     
+    @staticmethod
+    def _negxpowalpha(x, alpha):
+        if x >= 0:
+            return 0
+        return pow(-x, alpha)
+    
     @classmethod
     def barenblatt(cls,grid,t,sigma):
         """
