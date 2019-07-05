@@ -3,11 +3,11 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: tianon/latex:latest
+image: jgoldfar/miniconda3-latex:minimal
 
 pipelines:
   default:
     - step:
         script:
-          - apt-get update && apt-get install -y chktex pgf
-          - make -C doc check l-check-compile
+          - make get-tlmgr-deps make-conda-env 
+          - source activate ndce-python && make -C doc check l-check-compile

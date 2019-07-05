@@ -19,10 +19,10 @@ See below for the set-up instructions, such as they are, and the Markdown files 
 
 * Cloning this repository and should be enough to bring this package into your Python current scope to begin working on it.
 
-* Dependencies are minimal; Python 2.7 a couple commonly available packages should be enough.
+* Dependencies are minimal; the code is tested on Python 2.7, 3.4, and 3.6. PyPy{2,3} should be supported as long as plotting (from Python) is not required.
 Running
 
-```
+```shell
 pip install -r requirements.txt
 ```
 should install a known-good version of `NumPy`, as well as the plotting library `matplotlib` and the test framework `nose`.

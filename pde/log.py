@@ -7,7 +7,7 @@ class plog(logging.getLoggerClass()):
     def __init__(self, mod=None):
         super(plog,self).__init__('pde.'+mod)
         
-        self.setLevel(logging.INFO)
+        self.setLevel(logging.WARN)
         t=logging.StreamHandler()
         t.setFormatter(
                     logging.Formatter(

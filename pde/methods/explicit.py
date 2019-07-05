@@ -11,6 +11,8 @@ class diffusion(method):
         super(diffusion,self).__init__(grid)
         if ktxu is None:
             def tmp(t,x,u):
+                if u <= 0:
+                    return 0
                 return pow(u, alpha)
             self.ktxu = tmp
         else:

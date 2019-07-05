@@ -6,6 +6,8 @@
 %\numberwithin{equation}{section} %Uncomment if you want per-section equation numbering
 \usepackage[numbers]{natbib}
 
+\usepackage{pgfplots}
+
 \newcommand{\D}[2]{\frac{\partial{} #1}{\partial{} #2}}
 \newcommand{\bk}[1]{\left\{#1\right\}}
 \newcommand{\field}[1]{\mathbb{#1}}
@@ -13,14 +15,48 @@
 \newcommand{\Rn}{\R^{n}}
 
 \begin{document}
-\title{Difference schemes for Diffusion-Convection Equation}
+\title{Difference schemes for the Diffusion-Convection Equation}
 \author{Max Goldfarb}
 \thanks{}
 \email{jgoldfar@my.fit.edu}
 \address{Mathematical Sciences Department\\Florida Institute of Technology\\150 W.\ University Blvd.\\Melbourne, FL 32901}
 \date{\today}
 \maketitle
-\section{Introduction}
+\section{Motivation}
+In the study of diffusion in a porous medium, or heat conduction in a plasma, one has to consider nonlinear diffusion-convection equations of the form
+\begin{equation}
+\begin{cases}
+u_t-(u^m)_{xx}-b(u^{\gamma})_x=0,~ x \in \R,~ 0<t<T,\\
+u(x,0)=u_0(x),~  x \in \R
+\end{cases}\label{eq:W:1:1}
+\end{equation}
+where $m>0$, $b\in \R$, $0< T \leq +\infty$, $u_0\geq 0$, $u_0 \in C(\R)$.
+For a development of the qualitative theory of this equation, see~\cite{vazquez07}; we are inspired to study this equation, in particular, towards the extension of the work in~\cite{abdulla00a,abdulla02,abdulla00}.
+The analytical properties of solutions of this problem are quite interesting, but for now we will simply highlight the key fact, which is the appearance of interfaces in the solution that move with finite speed.
+For example, the point-source solution to~\eqref{eq:W:1:1}, the so-called Barenblatt solution, can be found in Figure~\ref{fig:barenblatt-profile}.
+%
+\begin{figure}[ht]
+\def\datafiledir{images}
+\input{\datafiledir/barenblatt-profile}%chktex 27 ok (external)
+\caption{Barenblatt profile with \(m=2\).}\label{fig:barenblatt-profile}
+\end{figure}
+%
+While this is a quite natural property for heat to have, it is striking that the standard (and quite effective) model for heat condition, the linear heat equation (eq.~\eqref{eq:W:1:1} with \(m=1\)) exhibits infinite speed of propagation even for initially localized data.
+The interface curve is defined as
+\begin{equation}
+\eta(t)=\sup\bk{x: u(x,t)>0 },\quad \eta(0)=0
+\end{equation}%
+Without a significant loss in generality, we can consider initial data satisfying
+\begin{equation}
+u_0(x) \sim  C(-x)_+^\alpha,\quad\text{as}~ x\rightarrow 0-.\label{eq:W:1:3}
+\end{equation}
+some $C>0$, $\alpha>0$.
+Barenblatt's problem is succinctly stated as follows: Does interface expand, shrink or remain stationary?
+Find the short-time behavior of the interface function $\eta(t)$ and $u(x,t)$ near $x=\eta(t)$.
+
+Work characterizing the solution to this problem in general is ongoing in many directions, but as a first step, we considered a numerical method for estimating the solution of this problem.
+
+\section{Development of Numerical Methods}
 In his text on the Theory of Difference schemes~\citep{samarskii01}, A.\ A.\ Samarskii gives two implicit numerical schemes for nonlinear reaction-diffusion type equations of the form
 \[ \D{u}{t}=\D{}{x}\left( k(u)\D{u}{x}\right)+f(u, u_x),\qquad a < x < b,\quad 0 < t \leq T\]
 where $k(u)>0$.

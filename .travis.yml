@@ -4,6 +4,21 @@ python:
   - '3.4'
   - '3.6'
   - pypy
+  - pypy3
+
+addons:
+  apt:
+    packages: 
+      - build-essential
+      - gfortran
+      - libatlas-base-dev
+      - libopenblas-dev
+      - liblapack-dev
+
+matrix:
+  allow_failures:
+    - python: pypy
+    - python: pypy3
 
 cache: pip
 
